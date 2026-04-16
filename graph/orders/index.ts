@@ -19,6 +19,7 @@ import { confirmOrderTool } from "./tools/confirm-order.tool";
 import { getClientTool } from "./tools/get-client.tool";
 import { getClientOrdersTool } from "./tools/get-client-orders.tool";
 import { getOrderDetailTool } from "./tools/get-order-detail.tool";
+import { reduceOrderQuantityTool } from "./tools/reduce-order-quantity.tool";
 
 const systemPrompt = readFileSync(
   new URL("./prompts/orders-agent.xml", import.meta.url),
@@ -33,6 +34,7 @@ const tools = [
   searchProductsTool,
   addToOrderTool,
   removeFromOrderTool,
+  reduceOrderQuantityTool,
   viewOrderTool,
   confirmOrderTool,
   getClientTool,
