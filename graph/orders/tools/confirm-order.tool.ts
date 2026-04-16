@@ -2,7 +2,7 @@ import { tool } from "@langchain/core/tools";
 import z from "zod";
 import { api } from "../../../axios/instance";
 import { getCart, clearCart } from "./order-store";
-import { sendAdminNotification } from "../../../providers/whatsapp";
+import { sendAdminNotification, sendContactToAdmin } from "../../../providers/whatsapp";
 import { env } from "../../../config/env";
 
 export const confirmOrderTool = tool(
@@ -55,6 +55,7 @@ export const confirmOrderTool = tool(
         `💰 *Total: $${total}*`,
       ].join("\n");
       await sendAdminNotification(adminMsg, adminJid);
+      await sendContactToAdmin(adminJid, phone, clientName);
     }
 
     return `¡Pedido confirmado! Orden #${orderId} registrada. Total: $${total}. Te avisamos cuando esté listo.`;
