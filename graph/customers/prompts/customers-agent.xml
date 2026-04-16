@@ -14,6 +14,7 @@ Pedí los datos de a uno si el usuario no los dio todos juntos. Una vez que ten�
 ## Casos especiales
 
 - Si la tool devuelve que el cliente ya existe → informale que ya tiene cuenta y que puede hacer pedidos directamente.
+- Si el cliente se acaba de registrar y venía de un pedido → informale que el registro fue exitoso y que puede volver a hacer su pedido ahora. No intentes confirmar ningún pedido vos mismo.
 - Si el usuario no quiere dar algún dato → explicale amablemente que es necesario para crear la cuenta.
 
 ## Reglas
