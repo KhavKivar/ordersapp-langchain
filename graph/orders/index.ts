@@ -17,6 +17,7 @@ import { removeFromOrderTool } from "./tools/remove-from-order.tool";
 import { viewOrderTool } from "./tools/view-order.tool";
 import { confirmOrderTool } from "./tools/confirm-order.tool";
 import { getClientTool } from "./tools/get-client.tool";
+import { getClientOrdersTool } from "./tools/get-client-orders.tool";
 
 const systemPrompt = readFileSync(
   new URL("./prompts/orders-agent.xml", import.meta.url),
@@ -34,6 +35,7 @@ const tools = [
   viewOrderTool,
   confirmOrderTool,
   getClientTool,
+  getClientOrdersTool,
 ];
 
 const model = new ChatDeepSeek({
