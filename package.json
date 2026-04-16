@@ -1,0 +1,35 @@
+{
+  "name": "ordersapp-langchain",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "tsx index.ts",
+    "test:product-catalog": "tsx graph/product-catalog/test.ts",
+    "test:orders": "tsx graph/orders/test.ts",
+    "test:customers": "tsx graph/customers/test.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.29.2",
+  "dependencies": {
+    "@google/genai": "^1.50.1",
+    "@langchain/core": "^1.1.40",
+    "@langchain/deepseek": "^1.0.24",
+    "@langchain/google": "^0.1.10",
+    "@langchain/google-genai": "^2.1.27",
+    "@langchain/langgraph": "^1.2.8",
+    "axios": "^1.15.0",
+    "baileys": "7.0.0-rc.9",
+    "dotenv": "^17.4.2",
+    "fuse.js": "^7.3.0",
+    "langchain": "^1.3.3",
+    "qrcode-terminal": "^0.12.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
+}
