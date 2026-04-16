@@ -11,7 +11,7 @@ Instrucciones de clasificación:
 
 1. Si el usuario quiere hacer, modificar, ver o confirmar un pedido, o consultar su historial de pedidos anteriores → orders
 2. Si el usuario está en medio de un pedido (el historial muestra que estaba armando uno) → orders, incluso si pregunta un precio
-3. Si el usuario quiere crear su cuenta o registrarse → customers
+3. Si el usuario quiere crear su cuenta, registrarse, ver sus datos o modificar sus datos → customers
 4. Si el usuario solo consulta productos o precios sin intención de pedir → product_catalog
 5. Si el mensaje es corto o ambiguo ("si", "no", "dale", "ok", "agrega 6", "bien agrega") → mirá el historial y continuá en el área activa
 6. Si ningún área aplica → end

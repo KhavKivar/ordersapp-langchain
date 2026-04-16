@@ -11,6 +11,8 @@ import { ChatDeepSeek } from "@langchain/deepseek";
 import { MODELS } from "../../config/models";
 import { SystemMessage } from "@langchain/core/messages";
 import { createClientTool } from "./tools/create-client.tool";
+import { getClientProfileTool } from "./tools/get-client-profile.tool";
+import { updateClientTool } from "./tools/update-client.tool";
 import { readFileSync } from "node:fs";
 
 const systemPrompt = readFileSync(
@@ -22,7 +24,7 @@ const State = new StateSchema({
   messages: MessagesValue,
 });
 
-const tools = [createClientTool];
+const tools = [getClientProfileTool, createClientTool, updateClientTool];
 
 const model = new ChatDeepSeek({
   model: MODELS.agent,
@@ -44,7 +46,7 @@ const customersGraph = new StateGraph(State)
   .addNode("tools", toolNode)
   .addEdge(START, "agent")
   .addConditionalEdges("agent", toolsCondition)
-  .addEdge("tools", END)
+  .addEdge("tools", "agent")
   .compile();
 
 export { customersGraph };

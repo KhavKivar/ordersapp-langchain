@@ -7,12 +7,20 @@ import {
   MemorySaver,
 } from "@langchain/langgraph";
 import { ChatDeepSeek } from "@langchain/deepseek";
-import { AIMessage, SystemMessage } from "@langchain/core/messages";
+import {
+  AIMessage,
+  HumanMessage,
+  SystemMessage,
+} from "@langchain/core/messages";
 import { productCatalogGraph } from "./product-catalog/index";
 import { ordersGraph } from "./orders/index";
 import { customersGraph } from "./customers/index";
+import getClientProfile from "./customers/api/get-client-profile";
 import { readFileSync } from "node:fs";
+import { createInterface } from "node:readline";
+import { fileURLToPath } from "node:url";
 import { MODELS } from "../config/models";
+import { env } from "../config/env";
 import { z } from "zod";
 
 const systemPromptRouter = readFileSync(
@@ -77,9 +85,24 @@ const router = async (state: typeof State.State) => {
   return { next: result.destination };
 };
 
-const fallback = () => ({
-  messages: [new AIMessage(WELCOME_MESSAGE)],
-});
+const fallback = async (_state: typeof State.State, config: any) => {
+  const phone = config?.configurable?.phone;
+  const profile = phone ? await getClientProfile(phone) : null;
+
+  if (profile) {
+    return {
+      messages: [new AIMessage(
+        `¡Hola, *${profile.localName}*! 👋\n\nSoy tu asistente de *Vasvani Shop*. ¿En qué te puedo ayudar?\n\n📋 *Ver productos y precios*\n🛍️ *Hacer un pedido*\n📦 *Ver mis pedidos*\n👤 *Ver o modificar mis datos*`,
+      )],
+    };
+  }
+
+  return {
+    messages: [new AIMessage(
+      `¡Hola! 👋 Bienvenido a *Vasvani Shop*.\n\nTodavía no tenés una cuenta registrada. Para poder hacer pedidos, te recomendamos registrarte primero.\n\n→ Escribí *"quiero registrarme"* para crear tu cuenta.`,
+    )],
+  };
+};
 
 const graph = new StateGraph(State)
   .addNode("router", router)
@@ -101,3 +124,46 @@ const graph = new StateGraph(State)
   .compile({ checkpointer: new MemorySaver() });
 
 export { graph };
+
+// Chat mode — ejecutar directamente: npx tsx graph/index.ts
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const THREAD_ID = env.TEST_NUMBER;
+  const phone = THREAD_ID.split("@")[0];
+  const config = { configurable: { thread_id: THREAD_ID, phone, phoneId: THREAD_ID } };
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+  console.log("\n🤖 Chat iniciado — thread_id:", THREAD_ID);
+  console.log('Escribí tu mensaje (o "exit" para salir)\n');
+
+  const ask = () => {
+    rl.question("Vos: ", async (input) => {
+      const text = input.trim();
+      if (!text || text === "exit") {
+        rl.close();
+        return;
+      }
+
+      try {
+        const result = await graph.invoke(
+          { messages: [new HumanMessage(text)] },
+          config,
+        );
+
+        const last = result.messages.at(-1);
+        const content =
+          typeof last?.content === "string"
+            ? last.content
+            : JSON.stringify(last?.content);
+
+        console.log("\nBot:", content, "\n");
+      } catch (err) {
+        console.error("[Error]", err);
+      }
+
+      ask();
+    });
+  };
+
+  ask();
+}

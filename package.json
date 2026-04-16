@@ -8,7 +8,8 @@
     "start": "tsx index.ts",
     "test:product-catalog": "tsx graph/product-catalog/test.ts",
     "test:orders": "tsx graph/orders/test.ts",
-    "test:customers": "tsx graph/customers/test.ts"
+    "test:customers": "tsx graph/customers/test.ts",
+    "chat": "tsx graph/index.ts"
   },
   "keywords": [],
   "author": "",
