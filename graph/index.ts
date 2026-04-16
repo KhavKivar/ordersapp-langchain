@@ -33,6 +33,11 @@ Soy tu asistente virtual y puedo ayudarte con:
   → "Quiero hacer un pedido"
   → "Me llevó una botella de Havana Club"
 
+📦 *Ver mis pedidos*
+  → "Mostrame mis pedidos"
+  → "¿Cuál fue mi último pedido?"
+  → "Detalle del pedido #4"
+
 👤 *Crear tu cuenta*
   → "Quiero registrarme"
   → "Crear mi cuenta"
