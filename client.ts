@@ -152,8 +152,8 @@ export async function startWhatsApp(reconnectAttempt = 0): Promise<void> {
       try {
         await sock.sendPresenceUpdate("composing", remoteJid);
         const response = await runAI(text, threadId, phone, phoneId);
-        await sock.sendPresenceUpdate("paused", remoteJid);
         await sock.sendMessage(remoteJid, { text: response });
+        await sock.sendPresenceUpdate("paused", remoteJid);
       } catch (error: any) {
         console.error(`Error procesando mensaje de ${remoteJid}:`, error?.message ?? error);
         await sock.sendMessage(remoteJid, { text: "Ocurrió un error. Intenta de nuevo." });
