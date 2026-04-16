@@ -2,6 +2,8 @@ import { tool } from "@langchain/core/tools";
 import z from "zod";
 import { api } from "../../../axios/instance";
 import { getCart, clearCart } from "./order-store";
+import { sendAdminNotification } from "../../../providers/whatsapp";
+import { env } from "../../../config/env";
 
 export const confirmOrderTool = tool(
   async (_input, config) => {
@@ -14,9 +16,11 @@ export const confirmOrderTool = tool(
 
     // Buscar el cliente por teléfono
     let clientId: number;
+    let clientName: string = phone;
     try {
       const { data } = await api.get(`/clients/phone/${phone}`);
       clientId = data.client.id;
+      clientName = data.client.localName ?? phone;
     } catch (error: any) {
       if (error.response?.status === 404) {
         return "No encontré tu cuenta. ¿Querés registrarte primero? Solo necesito el nombre de tu local y tu dirección.";
@@ -37,7 +41,23 @@ export const confirmOrderTool = tool(
     clearCart(threadId);
 
     const total = cart.reduce((acc, i) => acc + i.quantity * i.unitPrice, 0);
-    return `¡Pedido confirmado! Orden #${response.data.order?.id ?? "—"} registrada. Total: $${total}. Te avisamos cuando esté listo.`;
+    const orderId = response.data.order?.id ?? "—";
+
+    if (env.ADMIN_NUMBER) {
+      const adminJid = `${env.ADMIN_NUMBER}@s.whatsapp.net`;
+      const lines = cart.map((i) => `  • ${i.name} x${i.quantity} — $${i.quantity * i.unitPrice}`);
+      const adminMsg = [
+        `🛒 *Nuevo pedido #${orderId}*`,
+        `👤 Cliente: ${clientName} (${phone})`,
+        ``,
+        ...lines,
+        ``,
+        `💰 *Total: $${total}*`,
+      ].join("\n");
+      await sendAdminNotification(adminMsg, adminJid);
+    }
+
+    return `¡Pedido confirmado! Orden #${orderId} registrada. Total: $${total}. Te avisamos cuando esté listo.`;
   },
   {
     name: "confirm_order",
