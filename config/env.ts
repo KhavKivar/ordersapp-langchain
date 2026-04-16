@@ -10,5 +10,6 @@ export const env = {
   MESSAGE: process.env.MESSAGE || "",
   BEARER_TOKEN: process.env.BEARER_TOKEN || "",
   BOT_NUMBER: process.env.BOT_NUMBER || "",
+  ADMIN_NUMBER: process.env.ADMIN_NUMBER || "",
   DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY || "",
 };

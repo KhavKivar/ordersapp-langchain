@@ -8,6 +8,7 @@ import "dotenv/config";
 import { writeFileSync } from "node:fs";
 import { env } from "./config/env";
 import { graph } from "./graph/index";
+import { setSock } from "./providers/whatsapp";
 import qrcode from "qrcode-terminal";
 
 const LOG_FILE = "trace.log";
@@ -72,6 +73,7 @@ export async function startWhatsApp(reconnectAttempt = 0): Promise<void> {
     defaultQueryTimeoutMs: 60_000,
     keepAliveIntervalMs: 30_000,
   });
+  setSock(sock);
 
   sock.ev.on("creds.update", saveCreds);
 
