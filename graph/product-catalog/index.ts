@@ -13,6 +13,7 @@ import { SystemMessage } from "@langchain/core/messages";
 import { listProductsTool } from "./tools/list-products.tool";
 import { searchProductsTool } from "./tools/search-products.tool";
 import { readFileSync } from "node:fs";
+import { lastMessages } from "../../utils/format";
 import { KNOWN_BRANDS } from "./constants";
 
 const basePrompt = readFileSync(
@@ -39,7 +40,7 @@ const model = new ChatDeepSeek({
 const catalogAgent: GraphNode<typeof State> = async (state) => {
   const result = await model.invoke([
     new SystemMessage(systemPrompt),
-    ...state.messages,
+    ...lastMessages(state.messages),
   ]);
   return { messages: [result] };
 };

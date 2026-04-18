@@ -14,6 +14,7 @@ import { createClientTool } from "./tools/create-client.tool";
 import { getClientProfileTool } from "./tools/get-client-profile.tool";
 import { updateClientTool } from "./tools/update-client.tool";
 import { readFileSync } from "node:fs";
+import { lastMessages } from "../../utils/format";
 
 const systemPrompt = readFileSync(
   new URL("./prompts/customers-agent.xml", import.meta.url),
@@ -34,7 +35,7 @@ const model = new ChatDeepSeek({
 const customersAgent: GraphNode<typeof State> = async (state) => {
   const result = await model.invoke([
     new SystemMessage(systemPrompt),
-    ...state.messages,
+    ...lastMessages(state.messages),
   ]);
   return { messages: [result] };
 };
