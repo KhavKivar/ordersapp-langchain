@@ -11,7 +11,10 @@ export const getOrderDetailTool = tool(
       const lines = o.lines.map(
         (l: any) => `  • ${l.productName} x${l.quantity} — $${l.lineTotal}`,
       );
-      const total = o.lines.reduce((acc: number, l: any) => acc + l.lineTotal, 0);
+      const total = o.lines.reduce(
+        (acc: number, l: any) => acc + l.lineTotal,
+        0,
+      );
 
       return [
         `Pedido #${o.orderId} — ${o.status}`,
@@ -22,7 +25,8 @@ export const getOrderDetailTool = tool(
         `Total: $${total}`,
       ].join("\n");
     } catch (error: any) {
-      if (error.response?.status === 404) return `No encontré el pedido #${orderId}.`;
+      if (error.response?.status === 404)
+        return `No encontré el pedido #${orderId}.`;
       throw error;
     }
   },

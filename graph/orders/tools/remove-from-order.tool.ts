@@ -1,5 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import z from "zod";
+import Fuse from "fuse.js";
 import { getCart } from "./order-store";
 
 export const removeFromOrderTool = tool(
@@ -7,18 +8,27 @@ export const removeFromOrderTool = tool(
     const threadId = config?.configurable?.thread_id ?? "default";
     const cart = getCart(threadId);
 
-    const idx = cart.findIndex((c) => c.productId === input.productId);
-    if (idx === -1) return "Ese producto no está en el pedido.";
+    if (cart.length === 0) return "El pedido está vacío, no hay nada que eliminar.";
 
-    const item = cart[idx];
+    const fuse = new Fuse(cart, {
+      keys: ["name"],
+      threshold: 0.4,
+    });
+
+    const results = fuse.search(input.name);
+    if (results.length === 0) return `No encontré ningún producto llamado "${input.name}" en tu pedido actual.`;
+
+    const item = results[0].item;
+    const idx = cart.findIndex((c) => c.productId === item.productId);
+    
     cart.splice(idx, 1);
-    return `${item.name} eliminado del pedido.`;
+    return `✅ ${item.name} eliminado del pedido.`;
   },
   {
     name: "remove_from_order",
-    description: "Elimina un producto del pedido actual por su ID.",
+    description: "Elimina un producto completo del pedido actual por su nombre.",
     schema: z.object({
-      productId: z.number().describe("ID del producto a eliminar"),
+      name: z.string().describe("Nombre del producto a eliminar"),
     }),
   },
 );
