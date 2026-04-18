@@ -13,10 +13,14 @@ export const viewOrderTool = tool(
     let total = 0;
     for (const item of cart) {
       const subtotal = item.quantity * item.unitPrice;
-      msg += `• ${item.name} x${item.quantity} — $${subtotal}\n`;
+      const priceStr = item.unitPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      const subtotalStr = subtotal.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      
+      msg += `• ${item.name}: ${item.quantity} x $${priceStr} = $${subtotalStr}\n`;
       total += subtotal;
     }
-    msg += `\nTotal: $${total}`;
+    const totalStr = total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    msg += `\nTotal: $${totalStr}`;
     return msg;
   },
   {

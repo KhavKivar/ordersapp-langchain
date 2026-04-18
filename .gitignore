@@ -3,3 +3,6 @@ node_modules
 auth/
 .vscode/
 trace.log
+
+# LangGraph API
+.langgraph_api

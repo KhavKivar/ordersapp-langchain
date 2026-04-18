@@ -13,10 +13,16 @@ import { SystemMessage } from "@langchain/core/messages";
 import { listProductsTool } from "./tools/list-products.tool";
 import { searchProductsTool } from "./tools/search-products.tool";
 import { readFileSync } from "node:fs";
+import { KNOWN_BRANDS } from "./constants";
 
-const systemPrompt = readFileSync(
+const basePrompt = readFileSync(
   new URL("./prompts/catalog-agent.xml", import.meta.url),
   "utf8",
+);
+
+const systemPrompt = basePrompt.replace(
+  "{{KNOWN_BRANDS}}",
+  KNOWN_BRANDS.join(", "),
 );
 
 const State = new StateSchema({
@@ -45,7 +51,11 @@ const productCatalogGraph = new StateGraph(State)
   .addNode("tools", toolNode)
   .addEdge(START, "agent")
   .addConditionalEdges("agent", toolsCondition)
-  .addEdge("tools", "agent")
+  .addConditionalEdges("tools", (state) => {
+    const last = state.messages.at(-1) as any;
+    if (["list_products", "search_products"].includes(last?.name)) return END;
+    return "agent";
+  })
   .compile();
 
 export { productCatalogGraph };

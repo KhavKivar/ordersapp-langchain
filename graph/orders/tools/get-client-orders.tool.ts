@@ -25,9 +25,15 @@ export const getClientOrdersTool = tool(
       if (orders.length === 0) return "No tenés pedidos registrados todavía.";
 
       const lines = orders.map((o) => {
-        const total = o.lines?.reduce((acc: number, l: any) => acc + (l.lineTotal ?? 0), 0) ?? 0;
+        const total =
+          o.lines?.reduce(
+            (acc: number, l: any) => acc + (l.lineTotal ?? 0),
+            0,
+          ) ?? 0;
         const status = o.status ?? "—";
-        const date = o.createdAt ? new Date(o.createdAt).toLocaleDateString("es-AR") : "—";
+        const date = o.createdAt
+          ? new Date(o.createdAt).toLocaleDateString("es-AR")
+          : "—";
         return `• Pedido #${o.orderId} — $${total} — ${status} (${date})`;
       });
 

@@ -11,7 +11,7 @@ import { ChatDeepSeek } from "@langchain/deepseek";
 import { MODELS } from "../../config/models";
 import { SystemMessage } from "@langchain/core/messages";
 import { readFileSync } from "node:fs";
-import { searchProductsTool } from "./tools/search-products.tool";
+import { searchProductsTool } from "../product-catalog/tools/search-products.tool";
 import { addToOrderTool } from "./tools/add-to-order.tool";
 import { removeFromOrderTool } from "./tools/remove-from-order.tool";
 import { viewOrderTool } from "./tools/view-order.tool";
@@ -62,7 +62,17 @@ const ordersWorkflow = new StateGraph(State)
   .addNode("tools", toolNode)
   .addEdge(START, "agent")
   .addConditionalEdges("agent", toolsCondition)
-  .addEdge("tools", "agent");
+  .addConditionalEdges("tools", (state) => {
+    const last = state.messages.at(-1) as any;
+    const returnDirectTools = [
+      "view_order",
+      "get_client_orders",
+      "get_order_detail",
+      "search_products",
+    ];
+    if (returnDirectTools.includes(last?.name)) return END;
+    return "agent";
+  });
 
 const ordersGraph = ordersWorkflow.compile();
 

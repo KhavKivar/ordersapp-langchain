@@ -20,16 +20,34 @@ export const searchProductsTool = tool(
       return "No se encontraron productos con los filtros indicados.";
     }
 
-    if (input.name) {
+    const searchNames = input.names || (input.name ? [input.name] : []);
+
+    if (searchNames.length > 0) {
       const fuse = new Fuse(filteredProducts, {
         keys: ["name"],
         threshold: 0.4,
       });
-      const results = fuse.search(input.name);
-      if (results.length === 0)
-        return "No se encontró ningún producto con ese nombre.";
-      const match = results[0].item;
-      return `${match.name} (${toCapitalized(match.type)}), precio: $ ${match.sellPriceClient}`;
+
+      const allResults = new Map<number, Product>();
+      
+      for (const nameToSearch of searchNames) {
+        const results = fuse.search(nameToSearch);
+        for (const res of results) {
+          allResults.set(res.item.id, res.item);
+        }
+      }
+
+      if (allResults.size === 0) {
+        return `No se encontraron productos para: ${searchNames.join(", ")}.`;
+      }
+
+      let responseMessage = `🔍 Resultados encontrados (${allResults.size}):\n`;
+      for (const match of allResults.values()) {
+        const priceStr = "$" + match.sellPriceClient.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        responseMessage += `- ${match.name} (${toCapitalized(match.type)}), precio: ${priceStr}\n`;
+      }
+      
+      return responseMessage.trim();
     }
 
     let responseMessage = "Productos encontrados:\n";
@@ -45,17 +63,21 @@ export const searchProductsTool = tool(
   {
     name: "search_products",
     description:
-      "Busca el precio de un producto específico por nombre (fuzzy) o filtra por categoría. Usala cuando el usuario pregunta por un producto o licor concreto.",
+      "Busca productos por nombre (fuzzy) o filtra por categoría. Permite buscar varios nombres a la vez pasando una lista.",
     schema: z.object({
       name: z
         .string()
         .optional()
-        .describe("Nombre del producto a buscar (acepta errores de escritura)"),
+        .describe("Nombre de un producto a buscar (obsoleto, preferir 'names')"),
+      names: z
+        .array(z.string())
+        .optional()
+        .describe("Lista de nombres de productos a buscar simultáneamente"),
       category: z
         .string()
         .optional()
         .describe("Categoría del producto (ej: 'whisky', 'ron', 'tequila', 'gin')"),
     }),
-
+    returnDirect: true,
   },
 );
