@@ -21,6 +21,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { MODELS } from "../config/models";
 import { env } from "../config/env";
+import { lastMessages } from "../utils/format";
 import { z } from "zod";
 
 const systemPromptRouter = readFileSync(
@@ -68,7 +69,7 @@ const routerModel = new ChatDeepSeek({
 
 const router = async (state: typeof State.State) => {
   // El router solo ve mensajes human/ai con texto — sin tool calls ni tool results
-  const visibleMessages = state.messages.filter((m: any) => {
+  const visibleMessages = lastMessages(state.messages, 15).filter((m: any) => {
     const type = m._getType?.() ?? m.role;
     if (type === "tool") return false;
     if (type === "ai" && m.tool_calls?.length) return false;
