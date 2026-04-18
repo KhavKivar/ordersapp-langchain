@@ -11,6 +11,7 @@ import { ChatDeepSeek } from "@langchain/deepseek";
 import { MODELS } from "../../config/models";
 import { SystemMessage } from "@langchain/core/messages";
 import { readFileSync } from "node:fs";
+import { lastMessages } from "../../utils/format";
 import { searchProductsTool } from "../product-catalog/tools/search-products.tool";
 import { addToOrderTool } from "./tools/add-to-order.tool";
 import { removeFromOrderTool } from "./tools/remove-from-order.tool";
@@ -50,7 +51,7 @@ const model = new ChatDeepSeek({
 const ordersAgent: GraphNode<typeof State> = async (state) => {
   const result = await model.invoke([
     new SystemMessage(systemPrompt),
-    ...state.messages,
+    ...lastMessages(state.messages),
   ]);
   return { messages: [result] };
 };
