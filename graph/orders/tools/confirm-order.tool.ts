@@ -2,7 +2,10 @@ import { tool } from "@langchain/core/tools";
 import z from "zod";
 import { api } from "../../../axios/instance";
 import { getCart, clearCart } from "./order-store";
-import { sendAdminNotification, sendContactToAdmin } from "../../../providers/whatsapp";
+import {
+  sendAdminNotification,
+  sendContactToAdmin,
+} from "../../../providers/whatsapp";
 import { env } from "../../../config/env";
 
 export const confirmOrderTool = tool(
@@ -11,7 +14,8 @@ export const confirmOrderTool = tool(
     const phone = config?.configurable?.phone;
     const cart = getCart(threadId);
 
-    if (cart.length === 0) return "No hay productos en el pedido. Agregá algo antes de confirmar.";
+    if (cart.length === 0)
+      return "No hay productos en el pedido. Agregá algo antes de confirmar.";
     if (!phone) return "No se pudo identificar al cliente. Intentá de nuevo.";
 
     // Buscar el cliente por teléfono
@@ -43,20 +47,20 @@ export const confirmOrderTool = tool(
     const total = cart.reduce((acc, i) => acc + i.quantity * i.unitPrice, 0);
     const orderId = response.data.order?.id ?? "—";
 
-    if (env.ADMIN_NUMBER) {
-      const adminJid = `${env.ADMIN_NUMBER}@s.whatsapp.net`;
-      const lines = cart.map((i) => `  • ${i.name} x${i.quantity} — $${i.quantity * i.unitPrice}`);
-      const adminMsg = [
-        `🛒 *Nuevo pedido #${orderId}*`,
-        `👤 Cliente: ${clientName} (${phone})`,
-        ``,
-        ...lines,
-        ``,
-        `💰 *Total: $${total}*`,
-      ].join("\n");
-      await sendAdminNotification(adminMsg, adminJid);
-      await sendContactToAdmin(adminJid, phone, clientName);
-    }
+    // if (env.ADMIN_NUMBER) {
+    //   const adminJid = `${env.ADMIN_NUMBER}@s.whatsapp.net`;
+    //   const lines = cart.map((i) => `  • ${i.name} x${i.quantity} — $${i.quantity * i.unitPrice}`);
+    //   const adminMsg = [
+    //     `🛒 *Nuevo pedido #${orderId}*`,
+    //     `👤 Cliente: ${clientName} (${phone})`,
+    //     ``,
+    //     ...lines,
+    //     ``,
+    //     `💰 *Total: $${total}*`,
+    //   ].join("\n");
+    //   await sendAdminNotification(adminMsg, adminJid);
+    //   await sendContactToAdmin(adminJid, phone, clientName);
+    // }
 
     return `¡Pedido confirmado! Orden #${orderId} registrada. Total: $${total}. Te avisamos cuando esté listo.`;
   },
