@@ -1,11 +1,17 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
+import { interrupt } from "@langchain/langgraph";
 import { api } from "../../../axios/instance";
 
 export const createClientTool = tool(
   async (input, config) => {
     const phone = config?.configurable?.phone ?? "";
     const phoneId = config?.configurable?.phoneId ?? null;
+
+    const answer = interrupt(`¿Creamos tu cuenta con estos datos?\n\n🏪 *Local:* ${input.localName}\n📍 *Dirección:* ${input.address}\n\nRespondé *SI* para confirmar.`);
+    if (!["si", "sí"].includes((answer as string).trim().toLowerCase())) {
+      return "Registro cancelado. Podés iniciarlo de nuevo cuando quieras.";
+    }
 
     try {
       const response = await api.post("/clients", {
@@ -33,6 +39,5 @@ export const createClientTool = tool(
         .describe("Nombre del local o negocio del cliente (mínimo 4 caracteres)"),
       address: z.string().describe("Dirección del local o negocio"),
     }),
-    returnDirect: true,
   },
 );

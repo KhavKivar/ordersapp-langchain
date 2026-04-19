@@ -6,6 +6,7 @@ import makeWASocket, {
 } from "baileys";
 import "dotenv/config";
 import { writeFileSync } from "node:fs";
+import { Command } from "@langchain/langgraph";
 import { env } from "./config/env";
 import { graph } from "./graph/index";
 import { setSock } from "./providers/whatsapp";
@@ -33,9 +34,16 @@ async function runAI(
   phone: string,
   phoneId: string,
 ): Promise<string> {
+  const config = { configurable: { thread_id: threadId, phone, phoneId } };
+
+  const currentState = await graph.getState(config);
+  const hasPendingInterrupt = currentState.tasks?.some((t: any) => t.interrupts?.length > 0);
+
   const result = await graph.invoke(
-    { messages: [{ role: "user", content: text }] },
-    { configurable: { thread_id: threadId, phone, phoneId } },
+    hasPendingInterrupt
+      ? new Command({ resume: text })
+      : { messages: [{ role: "user", content: text }] },
+    config,
   );
 
   writeTrace({
@@ -50,10 +58,17 @@ async function runAI(
     })),
   });
 
+  // Si la invocación terminó en un interrupt, devolver el mensaje de confirmación
+  const newState = await graph.getState(config);
+  const pendingInterrupt = newState.tasks?.find((t: any) => t.interrupts?.length > 0);
+  if (pendingInterrupt) {
+    return pendingInterrupt.interrupts[0].value as string;
+  }
+
   const content = result.messages.at(-1)?.content ?? "";
   return typeof content === "string"
     ? content
-    : content.map((c) => ("text" in c ? c.text : "")).join("");
+    : content.map((c: any) => ("text" in c ? c.text : "")).join("");
 }
 
 export async function startWhatsApp(reconnectAttempt = 0): Promise<void> {

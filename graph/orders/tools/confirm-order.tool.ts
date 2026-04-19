@@ -1,5 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import z from "zod";
+import { interrupt } from "@langchain/langgraph";
 import { api } from "../../../axios/instance";
 import { getCart, clearCart } from "./order-store";
 import {
@@ -17,6 +18,13 @@ export const confirmOrderTool = tool(
     if (cart.length === 0)
       return "No hay productos en el pedido. Agregá algo antes de confirmar.";
     if (!phone) return "No se pudo identificar al cliente. Intentá de nuevo.";
+
+    const previewLines = cart.map((i) => `• ${i.name} x${i.quantity} — $${i.quantity * i.unitPrice}`).join("\n");
+    const previewTotal = cart.reduce((acc, i) => acc + i.quantity * i.unitPrice, 0);
+    const answer = interrupt(`¿Confirmás el siguiente pedido?\n\n${previewLines}\n\n💰 *Total: $${previewTotal}*\n\nRespondé *SI* para confirmar.`);
+    if (!["si", "sí"].includes((answer as string).trim().toLowerCase())) {
+      return "Pedido cancelado. Podés seguir editando o confirmarlo cuando quieras.";
+    }
 
     // Buscar el cliente por teléfono
     let clientId: number;

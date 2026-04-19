@@ -14,6 +14,7 @@ import { listProductsTool } from "./tools/list-products.tool";
 import { searchProductsTool } from "./tools/search-products.tool";
 import { readFileSync } from "node:fs";
 import { lastMessages } from "../../utils/format";
+import { RETURN_DIRECT_TOOLS } from "../tools.config";
 import { KNOWN_BRANDS } from "./constants";
 
 const basePrompt = readFileSync(
@@ -54,7 +55,7 @@ const productCatalogGraph = new StateGraph(State)
   .addConditionalEdges("agent", toolsCondition)
   .addConditionalEdges("tools", (state) => {
     const last = state.messages.at(-1) as any;
-    if (["list_products", "search_products"].includes(last?.name)) return END;
+    if ((RETURN_DIRECT_TOOLS as readonly string[]).includes(last?.name)) return END;
     return "agent";
   })
   .compile();
