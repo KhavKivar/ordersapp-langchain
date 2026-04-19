@@ -1,127 +1,82 @@
 import {
-  Annotation,
   MessagesAnnotation,
   StateGraph,
   START,
   END,
   MemorySaver,
 } from "@langchain/langgraph";
+import { ToolNode, toolsCondition } from "@langchain/langgraph/prebuilt";
 import { ChatDeepSeek } from "@langchain/deepseek";
-import {
-  AIMessage,
-  HumanMessage,
-  SystemMessage,
-} from "@langchain/core/messages";
-import { productCatalogGraph } from "./product-catalog/index";
-import { ordersGraph } from "./orders/index";
-import { customersGraph } from "./customers/index";
-import getClientProfile from "./customers/api/get-client-profile";
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { MODELS } from "../config/models";
 import { env } from "../config/env";
 import { lastMessages } from "../utils/format";
-import { z } from "zod";
+import { RETURN_DIRECT_TOOLS } from "./tools.config";
+import { KNOWN_BRANDS } from "./product-catalog/constants";
 
-const systemPromptRouter = readFileSync(
-  new URL("./prompts/main-router.xml", import.meta.url),
+import { listProductsTool } from "./product-catalog/tools/list-products.tool";
+import { searchProductsTool } from "./product-catalog/tools/search-products.tool";
+import { addToOrderTool } from "./orders/tools/add-to-order.tool";
+import { removeFromOrderTool } from "./orders/tools/remove-from-order.tool";
+import { reduceOrderQuantityTool } from "./orders/tools/reduce-order-quantity.tool";
+import { viewOrderTool } from "./orders/tools/view-order.tool";
+import { confirmOrderTool } from "./orders/tools/confirm-order.tool";
+import { getClientTool } from "./orders/tools/get-client.tool";
+import { getClientOrdersTool } from "./orders/tools/get-client-orders.tool";
+import { getOrderDetailTool } from "./orders/tools/get-order-detail.tool";
+import { getClientProfileTool } from "./customers/tools/get-client-profile.tool";
+import { createClientTool } from "./customers/tools/create-client.tool";
+import { updateClientTool } from "./customers/tools/update-client.tool";
+
+const basePrompt = readFileSync(
+  new URL("./prompts/agent.xml", import.meta.url),
   "utf8",
 );
 
-const WELCOME_MESSAGE = `¡Bienvenido a *Vasvani Shop* 🛒
+const systemPrompt = basePrompt.replace("{{KNOWN_BRANDS}}", KNOWN_BRANDS.join(", "));
 
-Soy tu asistente virtual y puedo ayudarte con:
+const tools = [
+  listProductsTool,
+  searchProductsTool,
+  addToOrderTool,
+  removeFromOrderTool,
+  reduceOrderQuantityTool,
+  viewOrderTool,
+  confirmOrderTool,
+  getClientTool,
+  getClientOrdersTool,
+  getOrderDetailTool,
+  getClientProfileTool,
+  createClientTool,
+  updateClientTool,
+];
 
-📋 *Ver productos y precios*
-  → "¿Qué productos tienen?"
-  → "¿Cuánto vale el Jack Daniel's?"
-  → "Mostrame los whiskies disponibles"
-
-🛍️ *Hacer un pedido*
-  → "Quiero hacer un pedido"
-  → "Me llevó una botella de Havana Club"
-
-📦 *Ver mis pedidos*
-  → "Mostrame mis pedidos"
-  → "¿Cuál fue mi último pedido?"
-  → "Detalle del pedido #4"
-
-👤 *Crear tu cuenta*
-  → "Quiero registrarme"
-  → "Crear mi cuenta"
-
-¿En qué te puedo ayudar?`;
-
-const State = Annotation.Root({
-  ...MessagesAnnotation.spec,
-  next: Annotation<string>({ reducer: (_, y) => y, default: () => "" }),
-});
-
-const routeSchema = z.object({
-  destination: z.enum(["product_catalog", "orders", "customers", "end"]),
-});
-
-const routerModel = new ChatDeepSeek({
-  model: MODELS.router,
+const model = new ChatDeepSeek({
+  model: MODELS.agent,
   temperature: 0,
-}).withStructuredOutput(routeSchema);
+}).bindTools(tools);
 
-const router = async (state: typeof State.State) => {
-  // El router solo ve mensajes human/ai con texto — sin tool calls ni tool results
-  const visibleMessages = lastMessages(state.messages, 15).filter((m: any) => {
-    const type = m._getType?.() ?? m.role;
-    if (type === "tool") return false;
-    if (type === "ai" && m.tool_calls?.length) return false;
-    if (type === "ai" && !m.content) return false;
-    return true;
-  });
-
-  const result = await routerModel.invoke([
-    new SystemMessage(systemPromptRouter),
-    ...visibleMessages,
+const agent = async (state: typeof MessagesAnnotation.State) => {
+  const result = await model.invoke([
+    new SystemMessage(systemPrompt),
+    ...lastMessages(state.messages),
   ]);
-
-  console.log(`[Router] → destination="${result.destination}"`);
-  return { next: result.destination };
+  return { messages: [result] };
 };
 
-const fallback = async (_state: typeof State.State, config: any) => {
-  const phone = config?.configurable?.phone;
-  const profile = phone ? await getClientProfile(phone) : null;
-
-  if (profile) {
-    return {
-      messages: [new AIMessage(
-        `¡Hola, *${profile.localName}*! 👋\n\nSoy tu asistente de *Vasvani Shop*. ¿En qué te puedo ayudar?\n\n📋 *Ver productos y precios*\n🛍️ *Hacer un pedido*\n📦 *Ver mis pedidos*\n👤 *Ver o modificar mis datos*`,
-      )],
-    };
-  }
-
-  return {
-    messages: [new AIMessage(
-      `¡Hola! 👋 Bienvenido a *Vasvani Shop*.\n\nTodavía no tenés una cuenta registrada. Para poder hacer pedidos, te recomendamos registrarte primero.\n\n→ Escribí *"quiero registrarme"* para crear tu cuenta.`,
-    )],
-  };
-};
-
-const graph = new StateGraph(State)
-  .addNode("router", router)
-  .addNode("product_catalog", productCatalogGraph)
-  .addNode("orders", ordersGraph)
-  .addNode("customers", customersGraph)
-  .addNode("fallback", fallback)
-  .addEdge(START, "router")
-  .addConditionalEdges("router", (state) => {
-    if (state.next === "product_catalog") return "product_catalog";
-    if (state.next === "orders") return "orders";
-    if (state.next === "customers") return "customers";
-    return "fallback";
+const graph = new StateGraph(MessagesAnnotation)
+  .addNode("agent", agent)
+  .addNode("tools", new ToolNode(tools))
+  .addEdge(START, "agent")
+  .addConditionalEdges("agent", toolsCondition)
+  .addConditionalEdges("tools", (state) => {
+    const last = state.messages.at(-1) as any;
+    if ((RETURN_DIRECT_TOOLS as readonly string[]).includes(last?.name)) return END;
+    return "agent";
   })
-  .addEdge("product_catalog", END)
-  .addEdge("orders", END)
-  .addEdge("customers", END)
-  .addEdge("fallback", END)
   .compile({ checkpointer: new MemorySaver() });
 
 export { graph };
