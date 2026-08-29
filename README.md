@@ -1,90 +1,51 @@
-# ordersapp-langchain
+# WhatsApp Order Agent
 
-Bot de WhatsApp para gestión de pedidos de licores (Vasvani Shop), construido con LangGraph y baileys.
+A conversational order-management agent built with LangGraph and Baileys. It classifies incoming WhatsApp messages, routes them to specialized subgraphs, and coordinates product, customer, and order operations against an external REST API.
 
-## Arquitectura
+## Architecture
 
-Router principal que clasifica cada mensaje y lo deriva a un subgrafo especializado:
-
-```
-WhatsApp (baileys)
-    └── graph/index.ts  (router + MemorySaver)
-            ├── product_catalog  → consulta productos y precios
-            ├── orders           → crea y gestiona pedidos
-            ├── customers        → registra clientes
-            └── fallback         → mensaje de bienvenida
+```text
+WhatsApp (Baileys)
+    -> root graph (router + MemorySaver)
+        -> product catalog
+        -> orders and cart tools
+        -> customer registration
+        -> fallback response
 ```
 
-El router usa `withStructuredOutput` para clasificar el mensaje en base al historial completo. Cada subgrafo es un `StateGraph` compilado sin checkpointer — la persistencia la maneja únicamente el grafo raíz.
+The root graph uses structured output to classify each message from its conversation history. Specialized `StateGraph` instances handle domain workflows while the root checkpointer owns session memory.
 
-## Requisitos
+## Setup
 
-- Node.js 20+
-- pnpm
-- Cuenta de DeepSeek con API key
-- Backend REST corriendo (ver `config/env.ts` para las variables requeridas)
-
-## Variables de entorno
-
-Crear un archivo `.env` en la raíz:
-
-```env
-DEEPSEEK_API_KEY=...
-API_BASE_URL=http://localhost:3000   # URL del backend
-BOT_NUMBER=56912345678               # Número del bot para pairing code (opcional, usa QR si no se define)
-```
-
-## Instalación
+Requirements: Node.js 20+, pnpm, a DeepSeek API key, and a compatible order-management API.
 
 ```bash
 pnpm install
-```
-
-## Uso
-
-```bash
+cp .env.example .env
 pnpm start
 ```
 
-Al iniciar, si `BOT_NUMBER` está definido en `.env`, el bot solicita un código de vinculación por número de teléfono. Abrí WhatsApp > Dispositivos vinculados > Vincular con número de teléfono e ingresá el código.
+When `BOT_NUMBER` is configured, Baileys uses phone-number pairing. Otherwise it displays a QR code. Local WhatsApp credentials are stored under `auth/` and are ignored by Git.
 
-Si no definís `BOT_NUMBER`, aparece un QR en la terminal.
-
-Las credenciales se guardan en la carpeta `auth/` (no se commitea).
-
-## Scripts de prueba
+## Workflow checks
 
 ```bash
-pnpm test:product-catalog   # prueba consulta de productos
-pnpm test:orders            # prueba flujo de pedido completo
-pnpm test:customers         # prueba registro de cliente
+pnpm test:product-catalog
+pnpm test:orders
+pnpm test:customers
 ```
 
-## Estructura
+These scripts exercise live integrations and require the corresponding API and model credentials.
 
-```
-graph/
-  index.ts                  # router principal + grafo raíz
-  product-catalog/          # subgrafo de catálogo
-  orders/                   # subgrafo de pedidos
-    tools/
-      order-store.ts        # carrito en memoria por thread_id
-      search-products.tool.ts
-      add-to-order.tool.ts
-      remove-from-order.tool.ts
-      view-order.tool.ts
-      confirm-order.tool.ts
-      get-client.tool.ts
-  customers/                # subgrafo de clientes
-config/
-  env.ts                    # variables de entorno validadas
-  models.ts                 # constantes de modelos DeepSeek
-axios/
-  instance.ts               # cliente HTTP hacia el backend
-client.ts                   # conexión WhatsApp (baileys)
-index.ts                    # entrypoint
+## Structure
+
+```text
+graph/       Root router and specialized domain subgraphs
+config/      Environment and model configuration
+axios/       REST API client
+providers/   WhatsApp and model providers
+client.ts    Baileys connection
+index.ts     Application entry point
 ```
 
-## Logging
-
-Cada mensaje procesado genera un archivo `trace.log` con el historial completo de mensajes, útil para debuggear el comportamiento del router y los agentes.
+Runtime traces may contain conversation content and are excluded from version control.
